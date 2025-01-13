@@ -1,7 +1,7 @@
 pretix
 ======
 
-.. image:: https://img.shields.io/pypi/v/pretix.svg
+.. icdge:: https://img.shields.io/pypi/v/pretix.svg
    :target: https://pypi.python.org/pypi/pretix
 
 .. image:: https://github.com/pretix/pretix/workflows/Documentation/badge.svg
