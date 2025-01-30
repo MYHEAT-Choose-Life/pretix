@@ -38,6 +38,7 @@ var strings = {
     'unavailable_available_from': django.pgettext('widget', 'Not yet available'),
     'unavailable_available_until': django.pgettext('widget', 'Not available anymore'),
     'unavailable_active': django.pgettext('widget', 'Currently not available'),
+    'unavailable_hidden_if_item_available': django.pgettext('widget', 'Not yet available'),
     'order_min': django.pgettext('widget', 'minimum amount to order: %s'),
     'exit': django.pgettext('widget', 'Close ticket shop'),
     'loading_error': django.pgettext('widget', 'The ticket shop could not be loaded.'),
@@ -229,7 +230,7 @@ Vue.component('availbox', {
         + '       v-bind:aria-label="label_select_item"'
         + '>'
         + '</label>'
-        + '<div :class="count_group_classes" v-else>'
+        + '<div :class="count_group_classes" v-else role="group" v-bind:aria-label="item.name">'
         + '<button v-if="!$root.use_native_spinners" type="button" @click.prevent.stop="on_step" data-step="-1" v-bind:data-controls="\'input_\' + input_name" class="pretix-widget-btn-default pretix-widget-item-count-dec" aria-label="' + strings.quantity_dec + '"><span>-</span></button>'
         + '<input type="number" inputmode="numeric" pattern="\d*" class="pretix-widget-item-count-multiple" placeholder="0" min="0"'
         + '       v-model="amount_selected" :max="order_max" :name="input_name" :id="\'input_\' + input_name"'
@@ -722,7 +723,6 @@ var shared_methods = {
     },
     buy_callback: function (data) {
         if (data.redirect) {
-            var iframe = this.$root.overlay.$children[0].$refs['frame-container'].children[0];
             if (data.cart_id) {
                 this.$root.cart_id = data.cart_id;
                 setCookie(this.$root.cookieName, data.cart_id, 30);
@@ -747,7 +747,7 @@ var shared_methods = {
                 }
                 this.$root.overlay.frame_loading = false;
             } else {
-                iframe.src = url;
+                this.$root.overlay.frame_src = url;
             }
         } else {
             this.async_task_id = data.async_id;
@@ -786,9 +786,7 @@ var shared_methods = {
         if (this.$root.additionalURLParams) {
             redirect_url += '&' + this.$root.additionalURLParams;
         }
-        var iframe = this.$root.overlay.$children[0].$refs['frame-container'].children[0];
-        this.$root.overlay.frame_loading = true;
-        iframe.src = redirect_url;
+        this.$root.overlay.frame_src = redirect_url;
     },
     voucher_open: function (voucher) {
         var redirect_url;
@@ -800,9 +798,7 @@ var shared_methods = {
             redirect_url += '&' + this.$root.additionalURLParams;
         }
         if (this.$root.useIframe) {
-            var iframe = this.$root.overlay.$children[0].$refs['frame-container'].children[0];
-            this.$root.overlay.frame_loading = true;
-            iframe.src = redirect_url;
+            this.$root.overlay.frame_src = redirect_url;
         } else {
             window.open(redirect_url);
         }
@@ -825,9 +821,7 @@ var shared_methods = {
             redirect_url += '&' + this.$root.additionalURLParams;
         }
         if (this.$root.useIframe) {
-            var iframe = this.$root.overlay.$children[0].$refs['frame-container'].children[0];
-            this.$root.overlay.frame_loading = true;
-            iframe.src = redirect_url;
+            this.$root.overlay.frame_src = redirect_url;
         } else {
             window.open(redirect_url);
         }
@@ -852,27 +846,27 @@ var shared_loading_fragment = (
 );
 
 var shared_iframe_fragment = (
-    '<div :class="frameClasses">'
+    '<div :class="frameClasses" role="dialog" aria-modal="true" >'
     + '<div class="pretix-widget-frame-loading" v-show="$root.frame_loading">'
     + '<svg width="256" height="256" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path class="pretix-widget-primary-color" d="M1152 896q0-106-75-181t-181-75-181 75-75 181 75 181 181 75 181-75 75-181zm512-109v222q0 12-8 23t-20 13l-185 28q-19 54-39 91 35 50 107 138 10 12 10 25t-9 23q-27 37-99 108t-94 71q-12 0-26-9l-138-108q-44 23-91 38-16 136-29 186-7 28-36 28h-222q-14 0-24.5-8.5t-11.5-21.5l-28-184q-49-16-90-37l-141 107q-10 9-25 9-14 0-25-11-126-114-165-168-7-10-7-23 0-12 8-23 15-21 51-66.5t54-70.5q-27-50-41-99l-183-27q-13-2-21-12.5t-8-23.5v-222q0-12 8-23t19-13l186-28q14-46 39-92-40-57-107-138-10-12-10-24 0-10 9-23 26-36 98.5-107.5t94.5-71.5q13 0 26 10l138 107q44-23 91-38 16-136 29-186 7-28 36-28h222q14 0 24.5 8.5t11.5 21.5l28 184q49 16 90 37l142-107q9-9 24-9 13 0 25 10 129 119 165 170 7 8 7 22 0 12-8 23-15 21-51 66.5t-54 70.5q26 50 41 98l183 28q13 2 21 12.5t8 23.5z"/></svg>'
     + '</div>'
     + '<div class="pretix-widget-frame-inner" ref="frame-container" v-show="$root.frame_shown">'
+    + '<div class="pretix-widget-frame-close"><a href="#" @click.prevent.stop="close" role="button" aria-label="'+strings.close+'">'
+    + '<svg height="16" viewBox="0 0 512 512" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M437.5,386.6L306.9,256l130.6-130.6c14.1-14.1,14.1-36.8,0-50.9c-14.1-14.1-36.8-14.1-50.9,0L256,205.1L125.4,74.5  c-14.1-14.1-36.8-14.1-50.9,0c-14.1,14.1-14.1,36.8,0,50.9L205.1,256L74.5,386.6c-14.1,14.1-14.1,36.8,0,50.9  c14.1,14.1,36.8,14.1,50.9,0L256,306.9l130.6,130.6c14.1,14.1,36.8,14.1,50.9,0C451.5,423.4,451.5,400.6,437.5,386.6z"/></svg>'
+    + '</a></div>'
     + '<iframe frameborder="0" width="650" height="650" @load="iframeLoaded" '
     + '        :name="$root.parent.widget_id" src="about:blank" v-once'
     + '        allow="autoplay *; camera *; fullscreen *; payment *"'
     + '        referrerpolicy="origin">'
     + 'Please enable frames in your browser!'
     + '</iframe>'
-    + '<div class="pretix-widget-frame-close"><a href="#" @click.prevent.stop="close" role="button" aria-label="'+strings.close+'">'
-    + '<svg height="16" viewBox="0 0 512 512" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M437.5,386.6L306.9,256l130.6-130.6c14.1-14.1,14.1-36.8,0-50.9c-14.1-14.1-36.8-14.1-50.9,0L256,205.1L125.4,74.5  c-14.1-14.1-36.8-14.1-50.9,0c-14.1,14.1-14.1,36.8,0,50.9L205.1,256L74.5,386.6c-14.1,14.1-14.1,36.8,0,50.9  c14.1,14.1,36.8,14.1,50.9,0L256,306.9l130.6,130.6c14.1,14.1,36.8,14.1,50.9,0C451.5,423.4,451.5,400.6,437.5,386.6z"/></svg>'
-    + '</a></div>'
     + '</div>'
     + '</div>'
 );
 
 var shared_alert_fragment = (
-    '<div :class="alertClasses">'
-    + '<transition name="bounce">'
+    '<div :class="alertClasses" role="dialog" aria-modal="true" aria-live="polite">'
+    + '<transition name="bounce" @after-enter="focusButton">'
     + '<div class="pretix-widget-alert-box" v-if="$root.error_message">'
     + '<p>{{ $root.error_message }}</p>'
     + '<p><button v-if="$root.error_url_after" @click.prevent.stop="errorContinue">' + strings.continue + '</button>'
@@ -965,8 +959,7 @@ Vue.component('pretix-overlay', {
                 window.open(this.$root.error_url_after);
                 return;
             }
-            var iframe = this.$refs['frame-container'].children[0];
-            iframe.src = this.$root.error_url_after;
+            this.$root.overlay.frame_src = this.$root.error_url_after;
             this.$root.frame_loading = true;
             this.$root.error_message = null;
             this.$root.error_url_after = null;
@@ -974,15 +967,22 @@ Vue.component('pretix-overlay', {
         close: function () {
             this.$root.frame_shown = false;
             this.$root.parent.frame_dismissed = true;
+            this.$root.frame_src = "";
             this.$root.parent.reload();
             this.$root.parent.trigger_close_callback();
         },
         iframeLoaded: function () {
             if (this.$root.frame_loading) {
                 this.$root.frame_loading = false;
-                this.$root.frame_shown = true;
+                if (this.$root.frame_src) {
+                    this.$root.frame_shown = true;
+                }
             }
-        }
+        },
+        focusButton: function () {
+            this.$el.querySelector(".pretix-widget-alert-box button").focus();
+        },
+
     }
 });
 
@@ -999,20 +999,20 @@ Vue.component('pretix-widget-event-form', {
         + '</div>'
 
         // Event name
-        + '<div class="pretix-widget-event-header" v-if="$root.events || $root.weeks || $root.days">'
+        + '<div class="pretix-widget-event-header" v-if="display_event_info">'
         + '<strong>{{ $root.name }}</strong>'
         + '</div>'
 
         // Date range
-        + '<div class="pretix-widget-event-details" v-if="($root.events || $root.weeks || $root.days) && $root.date_range">'
+        + '<div class="pretix-widget-event-details" v-if="display_event_info && $root.date_range">'
         + '{{ $root.date_range }}'
         + '</div>'
 
-        // Date range
-        + '<div class="pretix-widget-event-location" v-if="($root.events || $root.weeks || $root.days) && $root.location" v-html="$root.location"></div>'
+        // Location
+        + '<div class="pretix-widget-event-location" v-if="display_event_info && $root.location" v-html="$root.location"></div>'
 
         // Form start
-        + '<div class="pretix-widget-event-description" v-if="($root.events || $root.weeks || $root.days) && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
+        + '<div class="pretix-widget-event-description" v-if="display_event_info && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
         + '<form method="post" :action="$root.formAction" ref="form" :target="$root.formTarget">'
         + '<input type="hidden" name="_voucher_code" :value="$root.voucher_code" v-if="$root.voucher_code">'
         + '<input type="hidden" name="subevent" :value="$root.subevent" />'
@@ -1097,6 +1097,9 @@ Vue.component('pretix-widget-event-form', {
         this.$root.$off('focus_voucher_field', this.focus_voucher_field)
     },
     computed: {
+        display_event_info: function () {
+            return this.$root.display_event_info || (this.$root.display_event_info === null && (this.$root.events || this.$root.weeks || this.$root.days));
+        },
         id_cart_exists_msg: function () {
             return this.$root.html_id + '-cart-exists';
         },
@@ -1259,14 +1262,19 @@ Vue.component('pretix-widget-event-list', {
         + strings['back']
         + '</a>'
         + '</div>'
-        + '<div class="pretix-widget-event-header" v-if="$root.parent_stack.length > 0">'
+        + '<div class="pretix-widget-event-header" v-if="display_event_info">'
         + '<strong>{{ $root.name }}</strong>'
         + '</div>'
-        + '<div class="pretix-widget-event-description" v-if="$root.parent_stack.length > 0 && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
+        + '<div class="pretix-widget-event-description" v-if="display_event_info && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
         + '<pretix-widget-event-list-filter-form v-if="!$root.disable_filters && $root.meta_filter_fields.length > 0"></pretix-widget-event-list-filter-form>'
         + '<pretix-widget-event-list-entry v-for="event in $root.events" :event="event" :key="event.url"></pretix-widget-event-list-entry>'
         + '<p class="pretix-widget-event-list-load-more" v-if="$root.has_more_events"><button @click.prevent.stop="load_more">'+strings.load_more+'</button></p>'
         + '</div>'),
+    computed: {
+        display_event_info: function () {
+            return this.$root.display_event_info || (this.$root.display_event_info === null && this.$root.parent_stack.length > 0);
+        },
+    },
     methods: {
         back_to_calendar: function () {
             this.$root.offset = 0;
@@ -1477,10 +1485,10 @@ Vue.component('pretix-widget-event-calendar', {
         + '</div>'
 
         // Headline
-        + '<div class="pretix-widget-event-header" v-if="$root.parent_stack.length > 0">'
+        + '<div class="pretix-widget-event-header" v-if="display_event_info">'
         + '<strong>{{ $root.name }}</strong>'
         + '</div>'
-        + '<div class="pretix-widget-event-description" v-if="$root.parent_stack.length > 0 && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
+        + '<div class="pretix-widget-event-description" v-if="display_event_info && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
 
         // Filter
         + '<pretix-widget-event-list-filter-form v-if="!$root.disable_filters && $root.meta_filter_fields.length > 0"></pretix-widget-event-list-filter-form>'
@@ -1515,6 +1523,9 @@ Vue.component('pretix-widget-event-calendar', {
         + '</table>'
         + '</div>'),
     computed: {
+        display_event_info: function () {
+            return this.$root.display_event_info || (this.$root.display_event_info === null && this.$root.parent_stack.length > 0);
+        },
         monthname: function () {
             return strings['months'][this.$root.date.substr(5, 2)] + ' ' + this.$root.date.substr(0, 4);
         }
@@ -1563,7 +1574,7 @@ Vue.component('pretix-widget-event-week-calendar', {
         + '</div>'
 
         // Event header
-        + '<div class="pretix-widget-event-header" v-if="$root.parent_stack.length > 0">'
+        + '<div class="pretix-widget-event-header" v-if="display_event_info">'
         + '<strong>{{ $root.name }}</strong>'
         + '</div>'
 
@@ -1571,7 +1582,7 @@ Vue.component('pretix-widget-event-week-calendar', {
         + '<pretix-widget-event-list-filter-form v-if="!$root.disable_filters && $root.meta_filter_fields.length > 0"></pretix-widget-event-list-filter-form>'
 
         // Calendar navigation
-        + '<div class="pretix-widget-event-description" v-if="$root.parent_stack.length > 0 && $root.frontpage_text" v-html="$root.frontpage_text"></div>'
+        + '<div class="pretix-widget-event-description" v-if="$root.frontpage_text && display_event_info" v-html="$root.frontpage_text"></div>'
         + '<div class="pretix-widget-event-calendar-head">'
         + '<a class="pretix-widget-event-calendar-previous-month" href="#" @click.prevent.stop="prevweek" role="button">&laquo; '
         + strings['previous_week']
@@ -1593,11 +1604,14 @@ Vue.component('pretix-widget-event-week-calendar', {
         + '</div>'
         + '</div>'),
     computed: {
+        display_event_info: function () {
+            return this.$root.display_event_info || (this.$root.display_event_info === null && this.$root.parent_stack.length > 0);
+        },
         weekname: function () {
             var curWeek = this.$root.week[1];
             var curYear = this.$root.week[0];
             return curWeek + ' / ' + curYear;
-        }
+        },
     },
     methods: {
         back_to_list: function () {
@@ -1723,8 +1737,7 @@ var shared_root_methods = {
             } else {
                 url += '?iframe=1';
             }
-            this.$root.overlay.$children[0].$refs['frame-container'].children[0].src = url;
-            this.$root.overlay.frame_loading = true;
+            this.$root.overlay.frame_src = url;
         } else {
             event.target.href = url;
             return;
@@ -1887,9 +1900,7 @@ var shared_root_methods = {
             redirect_url += '&' + this.$root.additionalURLParams;
         }
         if (this.$root.useIframe) {
-            var iframe = this.$root.overlay.$children[0].$refs['frame-container'].children[0];
-            this.$root.overlay.frame_loading = true;
-            iframe.src = redirect_url;
+            this.$root.overlay.frame_src = redirect_url;
         } else {
             window.open(redirect_url);
         }
@@ -1913,9 +1924,7 @@ var shared_root_methods = {
             redirect_url += '&' + this.$root.additionalURLParams;
         }
         if (this.$root.useIframe) {
-            var iframe = this.$root.overlay.$children[0].$refs['frame-container'].children[0];
-            this.$root.overlay.frame_loading = true;
-            iframe.src = redirect_url;
+            this.$root.overlay.frame_src = redirect_url;
         } else {
             window.open(redirect_url);
         }
@@ -2052,9 +2061,41 @@ var create_overlay = function (app) {
                 error_url_after_new_tab: true,
                 error_message: null,
                 lightbox: null,
+                prevActiveElement: null,
             }
         },
+        props: {
+            frame_src: String,
+        },
         methods: {
+        },
+        watch: {
+            frame_src: function (newValue, oldValue) {
+                // show loading spinner only when previously no frame_src was set
+                if (newValue && !oldValue) {
+                    this.frame_loading = true;
+                }
+                // to close and unload the iframe, frame_src can be empty -> make it valid HTML with about:blank
+                this.$el.querySelector("iframe").src = newValue || "about:blank";
+            },
+            frame_shown: function (newValue) {
+                if (newValue) {
+                    this.prevActiveElement = document.activeElement;
+                    var btn = this.$el?.querySelector(".pretix-widget-frame-close a");
+                    this.$nextTick(function () {
+                        btn?.focus();
+                    });
+                } else {
+                    this.prevActiveElement?.focus();
+                }
+            },
+            error_message: function (newValue) {
+                if (newValue) {
+                    this.prevActiveElement = document.activeElement;
+                } else {
+                    this.prevActiveElement?.focus();
+                }
+            },
         }
     });
     app.$root.overlay = framechild;
@@ -2089,6 +2130,12 @@ var create_widget = function (element, html_id=null) {
     var disable_iframe = element.attributes["disable-iframe"] ? true : false;
     var disable_vouchers = element.attributes["disable-vouchers"] ? true : false;
     var disable_filters = element.attributes["disable-filters"] ? true : false;
+    var display_event_info = element.getAttribute("display-event-info"); // null means "auto" (as before), everything other than "false" is true
+    if (display_event_info !== null && display_event_info !== "auto") {
+        display_event_info = display_event_info !== "false";
+    } else {
+        display_event_info = null;
+    }
     var widget_data = JSON.parse(JSON.stringify(window.PretixWidget.widget_data));
     var filter = element.attributes.filter ? element.attributes.filter.value : null;
     var items = element.attributes.items ? element.attributes.items.value : null;
@@ -2165,6 +2212,7 @@ var create_widget = function (element, html_id=null) {
                 vouchers_exist: false,
                 disable_vouchers: disable_vouchers,
                 disable_filters: disable_filters,
+                display_event_info: display_event_info,
                 cart_exists: false,
                 itemcount: 0,
                 overlay: null,

@@ -1040,6 +1040,7 @@ DEFAULTS = {
                 ('False', _('Do not generate invoices')),
                 ('admin', _('Only manually in admin panel')),
                 ('user', _('Automatically on user request')),
+                ('user_paid', _('Automatically on user request for paid orders')),
                 ('True', _('Automatically for all created orders')),
                 ('paid', _('Automatically on payment or when required by payment method')),
             ),
@@ -1052,6 +1053,7 @@ DEFAULTS = {
                 ('paid', _('Automatically after payment or when required by payment method')),
                 ('True', _('Automatically before payment for all created orders')),
                 ('user', _('Automatically on user request')),
+                ('user_paid', _('Automatically on user request for paid orders')),
                 ('admin', _('Only manually in admin panel')),
             ),
             help_text=_("Invoices will never be automatically generated for free orders.")
@@ -3557,8 +3559,8 @@ PERSON_NAME_SCHEMES = OrderedDict([
             str(p) for p in [d.get('family_name', ''), d.get('given_name', '')] if p
         ),
         'sample': {
-            'given_name': '泽东',
-            'family_name': '毛',
+            'family_name': '孫',
+            'given_name': '文',
             '_scheme': 'family_nospace_given',
         },
     }),
@@ -3609,8 +3611,8 @@ PERSON_NAME_SCHEMES = OrderedDict([
         'concatenation': lambda d: str(d.get('full_name', '')),
         'concatenation_all_components': lambda d: str(d.get('full_name', '')) + " (" + d.get('latin_transcription', '') + ")",
         'sample': {
-            'full_name': '庄司',
-            'latin_transcription': 'Shōji',
+            'full_name': '山田花子',
+            'latin_transcription': 'Yamada Hanako',
             '_scheme': 'full_transcription',
         },
     }),
@@ -3701,6 +3703,7 @@ COUNTRIES_WITH_STATE_IN_ADDRESS = {
     'BR': (['State'], 'short'),
     'CA': (['Province', 'Territory'], 'short'),
     # 'CN': (['Province', 'Autonomous region', 'Munincipality'], 'long'),
+    'JP': (['Prefecture'], 'long'),
     'MY': (['State', 'Federal territory'], 'long'),
     'MX': (['State', 'Federal district'], 'short'),
     'US': (['State', 'Outlying area', 'District'], 'short'),

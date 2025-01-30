@@ -1025,10 +1025,9 @@ class BaseInvoiceAddressForm(forms.ModelForm):
                 'autocomplete': 'address-level2',
             }),
             'company': forms.TextInput(attrs={
-                'data-display-dependency': '#id_is_business_1',
                 'autocomplete': 'organization',
             }),
-            'vat_id': forms.TextInput(attrs={'data-display-dependency': '#id_is_business_1'}),
+            'vat_id': forms.TextInput(),
             'internal_reference': forms.TextInput,
         }
         labels = {
@@ -1059,8 +1058,8 @@ class BaseInvoiceAddressForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
-        self.fields["company"].widget.attrs["data-display-dependency"] = f'#id_{self.add_prefix("is_business")}_1'
-        self.fields["vat_id"].widget.attrs["data-display-dependency"] = f'#id_{self.add_prefix("is_business")}_1'
+        self.fields["company"].widget.attrs["data-display-dependency"] = f'input[name="{self.add_prefix("is_business")}"][value="business"]'
+        self.fields["vat_id"].widget.attrs["data-display-dependency"] = f'input[name="{self.add_prefix("is_business")}"][value="business"]'
 
         if not self.ask_vat_id:
             del self.fields['vat_id']
@@ -1141,9 +1140,9 @@ class BaseInvoiceAddressForm(forms.ModelForm):
         )
         if self.address_required and not self.company_required and not self.all_optional:
             if not event.settings.invoice_name_required:
-                self.fields['name_parts'].widget.attrs['data-required-if'] = f'#id_{self.add_prefix("is_business")}_0'
+                self.fields['name_parts'].widget.attrs['data-required-if'] = f'input[name="{self.add_prefix("is_business")}"][value="individual"]'
             self.fields['name_parts'].widget.attrs['data-no-required-attr'] = '1'
-            self.fields['company'].widget.attrs['data-required-if'] = f'#id_{self.add_prefix("is_business")}_1'
+            self.fields['company'].widget.attrs['data-required-if'] = f'input[name="{self.add_prefix("is_business")}"][value="business"]'
 
         if not event.settings.invoice_address_beneficiary:
             del self.fields['beneficiary']

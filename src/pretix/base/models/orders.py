@@ -355,7 +355,7 @@ class Order(LockModel, LoggedModel):
 
         if not self.testmode:
             raise TypeError("Only test mode orders can be deleted.")
-        self.event.log_action(
+        self.log_action(
             'pretix.event.order.deleted', user=user, auth=auth,
             data={
                 'code': self.code,
@@ -1087,7 +1087,7 @@ class Order(LockModel, LoggedModel):
 
             for i, op in enumerate(positions):
                 if op.seat:
-                    if not op.seat.is_available(ignore_orderpos=op):
+                    if not op.seat.is_available(ignore_orderpos=op, sales_channel=self.sales_channel.identifier):
                         raise Quota.QuotaExceededException(error_messages['seat_unavailable'].format(seat=op.seat))
                 if force:
                     continue
@@ -2281,9 +2281,9 @@ class OrderFee(models.Model):
     FEE_TYPE_OTHER = "other"
     FEE_TYPE_GIFTCARD = "giftcard"
     FEE_TYPES = (
+        (FEE_TYPE_SERVICE, _("Service fee")),
         (FEE_TYPE_PAYMENT, _("Payment fee")),
         (FEE_TYPE_SHIPPING, _("Shipping fee")),
-        (FEE_TYPE_SERVICE, _("Service fee")),
         (FEE_TYPE_CANCELLATION, _("Cancellation fee")),
         (FEE_TYPE_INSURANCE, _("Insurance fee")),
         (FEE_TYPE_LATE, _("Late fee")),
@@ -3217,6 +3217,12 @@ class CartPosition(AbstractPosition):
             self.tax_rate = line_price.rate
             self.tax_code = line_price.code
             self.save(update_fields=['line_price_gross', 'tax_rate'])
+
+    @property
+    def discount_percentage(self):
+        if not self.line_price_gross:
+            return 0
+        return (self.line_price_gross - self.price) / self.line_price_gross * 100
 
     @property
     def addons_without_bundled(self):

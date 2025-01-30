@@ -75,6 +75,14 @@ FORMAT_MODULE_PATH = [
     'pretix.helpers.formats',
 ]
 
+CORE_MODULES = {
+    "pretix.base",
+    "pretix.presale",
+    "pretix.control",
+    "pretix.plugins.checkinlists",
+    "pretix.plugins.reports",
+}
+
 ALL_LANGUAGES = [
     ('en', _('English')),
     ('de', _('German')),
@@ -94,6 +102,7 @@ ALL_LANGUAGES = [
     ('el', _('Greek')),
     ('id', _('Indonesian')),
     ('it', _('Italian')),
+    ('ja', _('Japanese')),
     ('lv', _('Latvian')),
     ('nb-no', _('Norwegian Bokmål')),
     ('pl', _('Polish')),
@@ -153,6 +162,12 @@ EXTRA_LANG_INFO = {
         'code': 'pt-pt',
         'name': 'Portuguese',
         'name_local': 'Português',
+    },
+    'nb-no': {
+        'bidi': False,
+        'code': 'nb-no',
+        'name': 'Norwegian Bokmal',
+        'name_local': 'norsk (bokmål)',
     },
 }
 
@@ -287,7 +302,7 @@ PILLOW_FORMATS_QUESTIONS_IMAGE = ('PNG', 'GIF', 'JPEG', 'BMP', 'TIFF')
 FILE_UPLOAD_EXTENSIONS_EMAIL_ATTACHMENT = (
     ".png", ".jpg", ".gif", ".jpeg", ".pdf", ".txt", ".docx", ".gif", ".svg",
     ".pptx", ".ppt", ".doc", ".xlsx", ".xls", ".jfif", ".heic", ".heif", ".pages",
-    ".bmp", ".tif", ".tiff"
+    ".bmp", ".tif", ".tiff", ".ics",
 )
 FILE_UPLOAD_EXTENSIONS_OTHER = FILE_UPLOAD_EXTENSIONS_EMAIL_ATTACHMENT
 

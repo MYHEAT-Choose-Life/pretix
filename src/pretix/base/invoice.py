@@ -388,6 +388,15 @@ class ClassicInvoiceRenderer(BaseReportlabInvoiceRenderer):
             except:
                 logger.exception("Can not resize image")
                 pass
+            try:
+                # Valid ZUGFeRD invoices must be compliant with PDF/A-3. pretix-zugferd ensures this by passing them
+                # through ghost script. Unfortunately, if the logo contains transparency, this will still fail.
+                # I was unable to figure out a way to fix this in GhostScript, so the easy fix is to remove the
+                # transparency, as our invoices always have a white background anyways.
+                ir.remove_transparency()
+            except:
+                logger.exception("Can not remove transparency from logo")
+                pass
             canvas.drawImage(ir,
                              self.logo_left,
                              self.pagesize[1] - self.logo_height - self.logo_top,
@@ -775,7 +784,7 @@ class ClassicInvoiceRenderer(BaseReportlabInvoiceRenderer):
 
         for idx, gross in grossvalue_map.items():
             rate, name = idx
-            if rate == 0:
+            if rate == 0 and gross == 0:
                 continue
             tax = taxvalue_map[idx]
             tdata.append([
@@ -792,7 +801,7 @@ class ClassicInvoiceRenderer(BaseReportlabInvoiceRenderer):
             except ValueError:
                 return localize(val) + ' ' + self.invoice.foreign_currency_display
 
-        if len(tdata) > 1 and has_taxes:
+        if any(rate != 0 and gross != 0 for (rate, name), gross in grossvalue_map.items()) and has_taxes:
             colwidths = [a * doc.width for a in (.25, .15, .15, .15, .3)]
             table = Table(tdata, colWidths=colwidths, repeatRows=2, hAlign=TA_LEFT)
             table.setStyle(TableStyle(tstyledata))
